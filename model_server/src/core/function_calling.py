@@ -557,6 +557,23 @@ class ArchFunctionHandler(ArchBaseHandler):
                 if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
                     model_response += chunk.choices[0].delta.content
             logger.info(f"[Agent Orchestrator]: response received: {model_response}")
+             # Convert Ollama response to ArchGW format
+            return ChatCompletionResponse(
+                id=0,
+                object="chat.completion",
+                created=str(int(time.time())),
+                choices=[
+                    Choice(
+                        message=Message(
+                            role="assistant",
+                            content=model_response
+                        ),
+                        finish_reason="stop"
+                    )
+                ],
+                model=self.model_name,
+                metadata={"provider": "ollama"}
+            )
         else:
             # initialize the hallucination handler, which is an iterator
             self.hallucination_state = HallucinationState(
@@ -622,8 +639,14 @@ class ArchFunctionHandler(ArchBaseHandler):
         else:
             logger.error(f"Tool call extraction error - {extracted['message']}")
 
+         # Create OpenAI-compatible response
         chat_completion_response = ChatCompletionResponse(
-            choices=[Choice(message=model_response)], model=self.model_name
+            id=0,
+            object="chat.completion",
+            created=str(int(time.time())),
+            choices=[Choice(message=model_response)],
+            model=self.model_name,
+            metadata={"provider": "ollama"}
         )
 
         logger.info(f"[response]: {json.dumps(chat_completion_response.model_dump())}")
